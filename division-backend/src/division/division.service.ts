@@ -4,7 +4,6 @@ import { Division } from './division';
 import { Repository } from 'typeorm';
 import { CreateDivisionDto } from './dtos/create-division.dto';
 import { UpdateDivisionDto } from './dtos/update-division.dto';
-import { DivisionBasicDto } from './dtos/division-basic.dto';
 import { FilterDivisionDto } from './dtos/filter-division.dto';
 import { DivisionPaginationResponseDto } from './dtos/division-pagination.dto';
 import { DivisionItemDto } from './dtos/division-item.dto';
@@ -19,31 +18,9 @@ export class DivisionService {
   public async getFilteredDivisions(
     filter: FilterDivisionDto,
   ): Promise<DivisionPaginationResponseDto> {
-    const {
-      superiorIds,
-      levelValues,
-      divisionIds,
-      page = 1,
-      limit = 10,
-    } = filter;
+    const { page = 1, limit = 10 } = filter;
 
-    const query = this.divisionRepository
-      .createQueryBuilder('division')
-      .leftJoinAndSelect('division.superior', 'superior')
-      .leftJoinAndSelect('division.subs', 'subs');
-
-    if (Array.isArray(superiorIds) && superiorIds.length > 0) {
-      query.andWhere('division.superiorId IN (:...superiorIds)', { superiorIds });
-    }
-
-    if (Array.isArray(levelValues) && levelValues.length > 0) {
-      query.andWhere('division.level IN (:...levelValues)', { levelValues });
-    }
-
-    if (Array.isArray(divisionIds) && divisionIds.length > 0) {
-      console.log('divisionIds', divisionIds);
-      query.andWhere('division.id IN (:...divisionIds)', { divisionIds });
-    }
+    const query = this.divisionRepository.createQueryBuilder('division');
 
     const [divisions, total] = await query
       .skip((page - 1) * limit)
@@ -88,38 +65,6 @@ export class DivisionService {
     }));
 
     return data;
-  }
-
-  public async getAllDivisionOptions(): Promise<DivisionBasicDto[]> {
-    const divisions = await this.divisionRepository.find({
-      select: ['id', 'name'],
-    });
-    return divisions;
-  }
-
-  public async getAlSuperiorDivisionsOptions(): Promise<DivisionBasicDto[]> {
-    const divisions = await this.divisionRepository
-      .createQueryBuilder('division')
-      .innerJoin('division.subs', 'sub')
-      .select(['division.id', 'division.name'])
-      .groupBy('division.id')
-      .addGroupBy('division.name')
-      .getRawMany();
-
-    return divisions.map((d: Division) => ({
-      id: d.id,
-      name: d.name,
-    }));
-  }
-
-  public async getAllLevelsOptions(): Promise<number[]> {
-    const levels = await this.divisionRepository
-      .createQueryBuilder('division')
-      .select('DISTINCT division.level', 'level')
-      .orderBy('division.level', 'ASC')
-      .getRawMany();
-
-    return levels.map((l: Division) => l.level);
   }
 
   public async createDivision(dto: CreateDivisionDto): Promise<Division> {
@@ -222,14 +167,5 @@ export class DivisionService {
     if (exist) {
       throw new BadRequestException('This name already exists');
     }
-  }
-  private async validateSuperior(id: number): Promise<Division> {
-    const superior = await this.divisionRepository.findOne({
-      where: { id },
-    });
-    if (!superior) {
-      throw new BadRequestException('This superior does not exist');
-    }
-    return superior;
   }
 }

@@ -13,7 +13,6 @@ import { DivisionService } from './division.service';
 import { FilterDivisionDto } from './dtos/filter-division.dto';
 import { DivisionPaginationResponseDto } from './dtos/division-pagination.dto';
 import { DivisionItemDto } from './dtos/division-item.dto';
-import { DivisionBasicDto } from './dtos/division-basic.dto';
 import { CreateDivisionDto } from './dtos/create-division.dto';
 import { UpdateDivisionDto } from './dtos/update-division.dto';
 
@@ -21,13 +20,11 @@ import { UpdateDivisionDto } from './dtos/update-division.dto';
 export class DivisionController {
   constructor(private readonly divisionService: DivisionService) { }
 
-
   @Get()
   public async getFilteredDivisions(
     @Query() filter: FilterDivisionDto,
   ): Promise<DivisionPaginationResponseDto> {
     const data = this.divisionService.getFilteredDivisions(filter);
-    console.log('data', data);
     return data;
   }
 
@@ -36,21 +33,6 @@ export class DivisionController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<DivisionItemDto[]> {
     return this.divisionService.getAllSubdivisions(id);
-  }
-
-  @Get('options/all')
-  public async getAllDivisionOptions(): Promise<DivisionBasicDto[]> {
-    return this.divisionService.getAllDivisionOptions();
-  }
-
-  @Get('options/superiors')
-  public async getAllSuperiorDivisionOptions(): Promise<DivisionBasicDto[]> {
-    return this.divisionService.getAlSuperiorDivisionsOptions();
-  }
-
-  @Get('options/levels')
-  public async getAllLevelsOptions(): Promise<number[]> {
-    return this.divisionService.getAllLevelsOptions();
   }
 
   @Post()
