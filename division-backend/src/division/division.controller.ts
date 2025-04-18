@@ -26,7 +26,9 @@ export class DivisionController {
   public async getFilteredDivisions(
     @Query() filter: FilterDivisionDto,
   ): Promise<DivisionPaginationResponseDto> {
-    return this.divisionService.getFilteredDivisions(filter);
+    const data = this.divisionService.getFilteredDivisions(filter);
+    console.log('data', data);
+    return data;
   }
 
   @Get(':id/subdivisions')

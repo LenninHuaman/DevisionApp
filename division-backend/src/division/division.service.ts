@@ -32,17 +32,16 @@ export class DivisionService {
       .leftJoinAndSelect('division.superior', 'superior')
       .leftJoinAndSelect('division.subs', 'subs');
 
-    if (superiorIds?.length) {
-      query.andWhere('division.superiorId IN (:...superiorIds)', {
-        superiorIds,
-      });
+    if (Array.isArray(superiorIds) && superiorIds.length > 0) {
+      query.andWhere('division.superiorId IN (:...superiorIds)', { superiorIds });
     }
 
-    if (levelValues?.length) {
+    if (Array.isArray(levelValues) && levelValues.length > 0) {
       query.andWhere('division.level IN (:...levelValues)', { levelValues });
     }
 
-    if (divisionIds?.length) {
+    if (Array.isArray(divisionIds) && divisionIds.length > 0) {
+      console.log('divisionIds', divisionIds);
       query.andWhere('division.id IN (:...divisionIds)', { divisionIds });
     }
 
