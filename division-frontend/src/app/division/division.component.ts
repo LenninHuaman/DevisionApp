@@ -1,11 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { DivisionService } from './division.service';
 import { map, Observable, of } from 'rxjs';
 import { DivisionPaginationDto } from './dtos/division-pagination.dto';
 import { FilterDivisionDto } from './dtos/filter-division.dto';
 import { DivisionItemDto } from './dtos/division-item.dto';
-import { DivisionBasicDto } from './dtos/division-basic.dto';
-import { NzTableSortFn, NzTableSortOrder } from 'ng-zorro-antd/table';
+import { NzTableFilterFn, NzTableFilterList, NzTableSortFn, NzTableSortOrder } from 'ng-zorro-antd/table';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NzTableModule } from 'ng-zorro-antd/table';
@@ -18,6 +17,20 @@ import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { NzPaginationModule } from 'ng-zorro-antd/pagination';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+
+interface ColumnItem {
+  name: string;
+  sortOrder: NzTableSortOrder | null;
+  sortFn: NzTableSortFn<DivisionItemDto> | null;
+  sortDirections: NzTableSortOrder[];
+  sortable?: boolean;
+  filterable?: boolean;
+  filterMultiple?: boolean;
+  listOfFilter?: NzTableFilterList;
+  filterFn?: NzTableFilterFn<DivisionItemDto> | null;
+}
 
 @Component({
   selector: 'app-division',
@@ -36,69 +49,230 @@ import { NzPaginationModule } from 'ng-zorro-antd/pagination';
     NzButtonModule,
     NzDropDownModule,
     NzPaginationModule,
+    NzInputModule,
+    NzSelectModule,
   ],
   templateUrl: './division.component.html',
   styleUrls: ['./division.component.scss'],
 })
-export class DivisionComponent implements OnInit {
+export class DivisionComponent {
   private divisionService = inject(DivisionService);
 
-  filters: FilterDivisionDto = {
-    superiorIds: [],
-    levelValues: [],
-    divisionIds: [],
-    page: 1,
-    limit: 10,
-  };
+  listOfColumns: ColumnItem[] = [
+    {
+      name: 'División',
+      sortOrder: null,
+      sortFn: (a: DivisionItemDto, b: DivisionItemDto) => a.name.localeCompare(b.name),
+      sortDirections: ['ascend', 'descend', null],
+      sortable: true,
+      filterable: true,
+      filterMultiple: true,
+      listOfFilter: [],
+      filterFn: (list: string[], item: DivisionItemDto) =>
+        list.some(name => item.name.includes(name))
+    },
+    {
+      name: 'División Superior',
+      sortOrder: null,
+      sortFn: (a: DivisionItemDto, b: DivisionItemDto) =>
+        (a.superiorName ?? '').localeCompare(b.superiorName ?? ''),
+      sortDirections: ['ascend', 'descend', null],
+      sortable: true,
+      filterable: true,
+      filterMultiple: true,
+      listOfFilter: [],
+      filterFn: (list: (string | null)[], item: DivisionItemDto) => {
+        if (list.includes(null)) return item.superiorName === null;
+        return list.some(name => name === item.superiorName);
+      }
+    },
+    {
+      name: 'Colaboradores',
+      sortOrder: null,
+      sortFn: (a: DivisionItemDto, b: DivisionItemDto) => a.collaborators - b.collaborators,
+      sortDirections: ['ascend', 'descend', null],
+      sortable: true,
+      filterable: false
+    },
+    {
+      name: 'Nivel',
+      sortOrder: null,
+      sortFn: (a: DivisionItemDto, b: DivisionItemDto) => a.level - b.level,
+      sortDirections: ['ascend', 'descend', null],
+      sortable: true,
+      filterable: true,
+      filterMultiple: true,
+      listOfFilter: [],
+      filterFn: (levels: number[], item: DivisionItemDto) =>
+        levels.length === 0 ? true : levels.includes(item.level)
+    },
+    {
+      name: 'Subdivisiones',
+      sortOrder: null,
+      sortFn: (a: DivisionItemDto, b: DivisionItemDto) => a.subsCount - b.subsCount,
+      sortDirections: ['ascend', 'descend', null],
+      sortable: true,
+      filterable: false
+    },
+    {
+      name: 'Embajadores',
+      sortOrder: null,
+      sortFn: null,
+      sortDirections: [],
+      sortable: false,
+      filterable: false
+    }
+  ];
 
-  filterOptions = {
-    divisions: [] as DivisionBasicDto[],
-    superiors: [] as DivisionBasicDto[],
-    levels: [] as number[],
-  };
-
-  divisionsPaginated: Observable<DivisionPaginationDto> = this.loadData();
+  filters: FilterDivisionDto = { page: 1, limit: 10 };
   currentData: DivisionItemDto[] = [];
+  sortedData: DivisionItemDto[] = [];
+  activeFilters: Record<string, any[]> = {};
+  totalItems = 0;
+  divisionsPaginated: Observable<DivisionPaginationDto> = this.loadData();
+  viewMode: 'list' | 'tree' = 'list';
+  selectedColumn: string | null = null;
+  searchText: string = '';
+  filteredDivisions: DivisionItemDto[] = [];
 
-  ngOnInit(): void {
-    this.divisionsPaginated.subscribe((res) => {
-      this.currentData = res.data;
+  loadData(): Observable<DivisionPaginationDto> {
+    return this.divisionService.getFilteredDivisions(this.filters).pipe(
+      map((response: DivisionPaginationDto) => {
+        this.currentData = [...response.data];
+        this.sortedData = [...response.data];
+        this.updateDynamicFilters(response.data);
+        this.totalItems = response.total;
+
+        if (Object.keys(this.activeFilters).length > 0) {
+          this.applyLocalFilters();
+        }
+
+        return { ...response, data: this.sortedData };
+      })
+    );
+  }
+
+  private applyLocalFilters(): void {
+    this.sortedData = [...this.currentData];
+
+    this.listOfColumns.forEach(column => {
+      if (column.filterable && column.filterFn) {
+        const activeFilters = this.activeFilters[column.name] || [];
+        if (activeFilters.length > 0) {
+          this.sortedData = this.sortedData.filter(item =>
+            column.filterFn!(activeFilters, item)
+          );
+        }
+      }
     });
   }
 
-  loadData(): Observable<DivisionPaginationDto> {
-    return this.divisionService.getFilteredDivisions(this.filters);
+  onSortChange(column: ColumnItem, sortOrder: NzTableSortOrder): void {
+    this.listOfColumns.forEach(col => {
+      col.sortOrder = col.name === column.name ? sortOrder : null;
+    });
+
+    if (sortOrder && column.sortFn) {
+      this.sortedData = [...this.currentData].sort((a, b) => {
+        const result = column.sortFn!(a, b);
+        return sortOrder === 'ascend' ? result : -result;
+      });
+    } else {
+      this.sortedData = [...this.currentData];
+    }
+
+    this.updatePaginatedData();
   }
 
-  divisionOrder: 'ascend' | 'descend' | null = null;;
+  handleFilterChange(filters: any[], column: ColumnItem): void {
+    if (!column.filterable || !column.filterFn) return;
 
+    this.activeFilters[column.name] = filters;
+    this.applyLocalFilters();
+    this.updatePaginatedData();
+  }
 
-  sortDivision(order: 'ascend' | 'descend' | null | string): void {
-    this.divisionOrder = order as 'ascend' | 'descend' | null;
-    if (order) {
-      this.currentData = [...this.currentData].sort((a, b) =>
-        order === 'ascend'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name)
-      );
-    } else {
-      this.divisionsPaginated.subscribe((res) => {
-        this.currentData = res.data;
-      });
+  filterDivisions(): void {
+    if (!this.searchText || !this.selectedColumn) {
+      this.filteredDivisions = [...this.currentData];
+      return;
+    }
+
+    const column = this.listOfColumns.find(c => c.name === this.selectedColumn);
+    if (!column) return;
+
+    const searchTerm = this.searchText.toLowerCase();
+
+    this.filteredDivisions = this.currentData.filter(item => {
+      const fieldName = this.getFieldNameFromColumn(column.name);
+      const value = item[fieldName]?.toString().toLowerCase();
+      return value?.includes(searchTerm);
+    });
+  }
+
+  private getFieldNameFromColumn(columnName: string): keyof DivisionItemDto {
+    const columnMap: Record<string, keyof DivisionItemDto> = {
+      'División': 'name',
+      'División Superior': 'superiorName',
+      'Nivel': 'level',
+      'Colaboradores': 'collaborators',
+      'Subdivisiones': 'subsCount',
+      'Embajadores': 'ambassador'
+    };
+
+    return columnMap[columnName] || 'name';
+  }
+
+  clearSearch(): void {
+    this.searchText = '';
+    this.selectedColumn = null;
+    this.filteredDivisions = [];
+  }
+
+  private updatePaginatedData(): void {
+    this.divisionsPaginated = of({
+      data: this.sortedData,
+      total: this.sortedData.length,
+      page: this.filters.page || 1,
+      limit: this.filters.limit || 10
+    });
+  }
+
+  private updateDynamicFilters(data: DivisionItemDto[]): void {
+    const nameColumn = this.listOfColumns.find(c => c.name === 'División');
+    if (nameColumn?.filterable) {
+      const uniqueNames = [...new Set(data.map(item => item.name))];
+      nameColumn.listOfFilter = uniqueNames.map(name => ({ text: name, value: name }));
+    }
+
+    const superiorNameColumn = this.listOfColumns.find(c => c.name === 'División Superior');
+    if (superiorNameColumn?.filterable) {
+      const uniqueSuperiorNames = [...new Set(data.map(item => item.superiorName))];
+      superiorNameColumn.listOfFilter = [
+        { text: 'Sin división superior', value: null },
+        ...uniqueSuperiorNames
+          .filter(name => name !== null)
+          .map(name => ({ text: name as string, value: name }))
+      ];
+    }
+
+    const levelColumn = this.listOfColumns.find(c => c.name === 'Nivel');
+    if (levelColumn?.filterable) {
+      const uniqueLevels = [...new Set(data.map(item => item.level))].sort();
+      levelColumn.listOfFilter = uniqueLevels.map(level => ({
+        text: `Nivel ${level}`,
+        value: level
+      }));
     }
   }
 
   onPageChange(page: number): void {
-    this.filters = {
-      ...this.filters,
-      page
-    };
+    this.filters = { ...this.filters, page };
     this.divisionsPaginated = this.loadData();
   }
 
   onPageSizeChange(limit: number): void {
-    this.filters.limit = limit;
-    this.filters.page = 1;
+    this.filters = { page: 1, limit };
     this.divisionsPaginated = this.loadData();
   }
 
@@ -108,13 +282,8 @@ export class DivisionComponent implements OnInit {
   }
 
   resetFilters(): void {
-    this.filters = {
-      superiorIds: [],
-      levelValues: [],
-      divisionIds: [],
-      page: 1,
-      limit: 10,
-    };
+    this.filters = { page: 1, limit: 10 };
+    this.activeFilters = {};
     this.divisionsPaginated = this.loadData();
   }
 }
