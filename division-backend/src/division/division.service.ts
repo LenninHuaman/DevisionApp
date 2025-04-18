@@ -20,12 +20,11 @@ export class DivisionService {
   ): Promise<DivisionPaginationResponseDto> {
     const { page = 1, limit = 10 } = filter;
 
-    const query = this.divisionRepository.createQueryBuilder('division');
-
-    const [divisions, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+    const [divisions, total] = await this.divisionRepository.findAndCount({
+      relations: ['superior', 'subs'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
     const data: DivisionItemDto[] = divisions.map((division) => ({
       id: division.id,
