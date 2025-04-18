@@ -1,0 +1,205 @@
+.page-container {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  background: #2E52F8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+
+  .brand {
+    display: flex;
+    align-items: center;
+
+    &-name {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+    }
+  }
+
+  .nav-menu {
+    line-height: 62px;
+    border-bottom: none;
+    margin: 0 auto 0 50px;
+
+    li {
+      font-weight: 500;
+      padding: 0 16px;
+      color: white;
+      background-color: #2E52F8;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: rgba(46, 82, 248, 0.8);
+        color: white;
+      }
+    }
+  }
+
+  .user-actions {
+    .user-avatar {
+      background-color: white;
+      color: #2E52F8;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+.active {
+  color: white !important;
+  border-bottom: 2px solid white !important;
+  font-weight: 600 !important;
+}
+
+.section-container {
+  padding: 24px 24px 0;
+  margin-top: 80px;
+}
+
+.two-column-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.left-column {
+  flex: 1;
+}
+
+.right-column {
+  margin-left: 24px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+
+  .action-button {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.content-container {
+  padding: 0 24px 24px;
+}
+
+.divisions-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  ::ng-deep .ant-card-head {
+    border-bottom: none;
+
+    .ant-card-head-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+}
+
+.divisions-table {
+  margin-top: 16px;
+
+  ::ng-deep {
+    .ant-table-thead>tr>th {
+      background: #fafafa;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
+    }
+
+    .ant-table-tbody>tr>td {
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .ant-table-tbody>tr:hover>td {
+      background: #fafafa;
+    }
+
+    .ant-pagination {
+      margin-top: 16px;
+      padding: 0 16px;
+    }
+
+    .ant-table-pagination.ant-pagination {
+      margin: 16px 0 0 0;
+    }
+  }
+}
+
+.filter-button {
+  margin-left: 4px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.45);
+
+  &:hover {
+    color: #2e52f8;
+  }
+}
+
+.filter-menu {
+  padding: 8px;
+  max-height: 300px;
+  width: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  input[type="checkbox"] {
+    margin-right: 8px;
+  }
+
+  input[nz-input] {
+    margin-bottom: 8px;
+  }
+
+  label {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.sortable-icon {
+  cursor: pointer;
+  margin-left: 4px;
+  color: #1890ff;
+  transition: color 0.2s;
+}
+
+.sortable-icon:hover {
+  color: #40a9ff;
+}
+
+.sortable-icon:focus {
+  outline: none;
+}

@@ -1,0 +1,119 @@
+<div class="page-container">
+  <header class="app-header">
+    <div class="brand">
+      <h1 class="brand-name">Organización</h1>
+    </div>
+
+    <ul nz-menu nzMode="horizontal" class="nav-menu">
+      <li nz-menu-item routerLink="/dashboard" routerLinkActive="active">Dashboard</li>
+      <li nz-menu-item routerLink="/organizacion" routerLinkActive="active">Organización</li>
+      <li nz-menu-item routerLink="/modelos" routerLinkActive="active">Modelos</li>
+      <li nz-menu-item routerLink="/seguimiento" routerLinkActive="active">Seguimiento</li>
+    </ul>
+
+    <div class="user-actions">
+      <nz-avatar nzIcon="user" class="user-avatar"></nz-avatar>
+    </div>
+  </header>
+
+  <div class="section-container">
+    <div class="two-column-section">
+      <div class="left-column">
+        <h2 class="section-title">Divisiones Organizacionales</h2>
+        <nz-tabset [nzSelectedIndex]="0">
+          <nz-tab nzTitle="Divisiones"></nz-tab>
+          <nz-tab nzTitle="Colaboradores"></nz-tab>
+        </nz-tabset>
+      </div>
+
+      <div class="right-column">
+        <div class="action-buttons">
+          <button nz-button nzType="primary" nzShape="circle" class="action-button">
+            <span nz-icon nzType="plus"></span>
+          </button>
+          <button nz-button nzType="default" nzShape="circle" class="action-button">
+            <span nz-icon nzType="upload"></span>
+          </button>
+          <button nz-button nzType="default" nzShape="circle" class="action-button">
+            <span nz-icon nzType="download"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-container">
+    <nz-card class="divisions-card">
+      @if (divisionsPaginated | async; as paginated) {
+        <nz-table
+          #divisionTable
+          [nzData]="currentData"
+          [nzTotal]="paginated.total"
+          nzShowPagination="false"
+          nzSize="middle"
+        >
+          <thead>
+            <tr>
+            <th        nzShowSort
+        [nzSortOrder]="divisionOrder"
+        [nzSortDirections]="['ascend', 'descend', null]"
+        (nzSortOrderChange)="sortDivision($event)" nzFilter nzShowFilter>
+                Divisiones
+              </th>
+
+              <th nzShowSort nzFilter nzShowFilter>
+                División Superior
+              </th>
+
+              <th nzShowSort>
+                Colaboradores
+              </th>
+
+              <th nzShowSort nzFilter nzShowFilter>
+                Nivel
+              </th>
+
+              <th nzShowSort>
+                Subdivisiones
+              </th>
+
+              <th>Embajadores</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (division of paginated.data; track division.id) {
+              <tr>
+                <td>{{ division.name }}</td>
+                <td>{{ division.superiorName || '-' }}</td>
+                <td>{{ division.collaborators }}</td>
+                <td>
+                    {{ division.level }}
+                </td>
+                <td>{{ division.subsCount }}</td>
+                <td>
+                  @if (division.ambassador) {
+                    <span>{{ division.ambassador }}</span>
+                  } @else {
+                    -
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+
+        <nz-pagination
+          [nzPageIndex]="filters.page || 1"
+          [nzTotal]="paginated.total"
+          [nzPageSize]="filters.limit || 10"
+          [nzPageSizeOptions]="[5, 10, 20, 50]"
+          (nzPageIndexChange)="onPageChange($event)"
+          (nzPageSizeChange)="onPageSizeChange($event)"
+          [nzShowSizeChanger]="true"
+          class="pagination-controls"
+        ></nz-pagination>
+      }
+    </nz-card>
+  </div>
+</div>
